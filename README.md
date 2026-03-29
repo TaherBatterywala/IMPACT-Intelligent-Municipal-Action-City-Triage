@@ -38,7 +38,6 @@
 10. [Environment Variables](#-environment-variables)
 11. [Getting Started](#-getting-started)
 12. [Security Model](#-security-model)
-13. [Roadmap](#-roadmap)
 
 ---
 
