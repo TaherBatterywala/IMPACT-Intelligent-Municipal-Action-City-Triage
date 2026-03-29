@@ -54,17 +54,20 @@ __pycache__/
 *.pyd
 .Python
 
-# Jupyter notebook checkpoints
-.ipynb_checkpoints/
-*/.ipynb_checkpoints/
+# Jupyter notebooks — only trained model files are needed, not training code
+*.ipynb
 
 # ML artefacts — the .pt and .pkl model files MUST be committed
-# so the ML server works after deployment. Only ignore the raw
-# training image dataset (thousands of images, not needed at runtime).
-ML\ Model/dataset/train/
-ML\ Model/dataset/valid/
-ML\ Model/dataset/test/
+# so the ML server works after deployment. Ignore everything else.
+
+# Full dataset folder (train/valid/test images + yamls + READMEs — not needed at runtime)
+ML\ Model/dataset/
+
+# Raw training data CSV
 ML\ Model/civic_complaints.csv
+
+# Duplicate requirements.txt — root-level one is the source of truth
+ML\ Model/requirements.txt
 
 # Keep all model files — required for inference:
 # ML Model/best (1).pt        ← YOLO weights
