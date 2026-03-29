@@ -1,0 +1,28 @@
+{
+    "name": "impact-project",
+    "version": "1.0.0",
+    "description": "IMPACT: Intelligent Municipal Action & City Triage",
+    "scripts": {
+        "start": "concurrently \"npm run server --prefix server\" \"npm run dev --prefix client\"",
+        "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+        "server": "npm run server --prefix server",
+        "client": "npm run dev --prefix client",
+        "dev": "concurrently \"npm run server --prefix server\" \"npm run dev --prefix client\""
+    },
+    "keywords": [
+        "mern",
+        "municipal",
+        "impact"
+    ],
+    "author": "IMPACT Team",
+    "license": "ISC",
+    "devDependencies": {
+        "concurrently": "^8.0.0"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "dependencies": {
+        "all": "^0.0.0"
+    }
+}

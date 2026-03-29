@@ -1,0 +1,17 @@
+names:
+- '0'
+- c
+- garbage
+- garbage_bag
+- sampah-detection
+- trash
+nc: 6
+roboflow:
+  license: CC BY 4.0
+  project: garbage_best
+  url: https://universe.roboflow.com/smart-india-hackathon-2023/garbage_best/dataset/1
+  version: 1
+  workspace: smart-india-hackathon-2023
+test: /content/local_dataset/test/images
+train: /content/local_dataset/train/images
+val: /content/local_dataset/valid/images
