@@ -18,7 +18,7 @@
 
 > **A full-stack, AI-augmented civic complaint management platform connecting citizens with their municipal government in real time.**
 
-[🚀 Live Demo](#) • [📖 Documentation](#-api-reference) • [🐛 Report Bug](https://github.com/TaherBatterywala/IMPACT-Intelligent-Municipal-Action-City-Triage/issues)
+[📖 Documentation](#-api-reference) • [🐛 Report Bug](https://github.com/TaherBatterywala/IMPACT-Intelligent-Municipal-Action-City-Triage/issues)
 
 </div>
 
@@ -238,25 +238,30 @@ MongoDB Atlas — epics_project database
 
 ### Architecture
 
-```
-User submits complaint
-        │
-        ▼
-┌──────────────────┐         ┌──────────────────┐
-│  Text Analysis   │         │  Image Analysis  │
-│                  │         │                  │
-│  TF-IDF          │         │   YOLOv8         │
-│  Vectorizer      │         │   best (1).pt    │
-│       ↓          │         │       ↓          │
-│  Category Model  │         │  Bounding boxes  │
-│  Severity Model  │         │  Confidence %    │
-│       ↓          │         │       ↓          │
-│ {category, sev}  │         │ {detections[]}   │
-└──────────────────┘         └──────────────────┘
-        │                             │
-        └────────────┬────────────────┘
-                     ▼
-          Auto-fills complaint form
+```mermaid
+flowchart TD
+    Submit["📝 User Submits Complaint"]
+
+    subgraph NLP ["🧠 Text Analysis"]
+        TFIDF["TF-IDF Vectorizer"]
+        CAT["Category Model"]
+        SEV["Severity Model"]
+        TFIDF --> CAT
+        TFIDF --> SEV
+    end
+
+    subgraph CV ["📷 Image Analysis"]
+        YOLO["YOLOv8 — best.pt"]
+        BOXES["Bounding Boxes + Confidence%"]
+        YOLO --> BOXES
+    end
+
+    Submit --> TFIDF
+    Submit --> YOLO
+
+    CAT --> RESULT["✅ Auto-fills complaint form\ncategory · severity · detections"]
+    SEV --> RESULT
+    BOXES --> RESULT
 ```
 
 ### Endpoints (Flask — Port 8000)
@@ -278,53 +283,64 @@ const mlServer = spawn(`"${venvPython}"`, ['app.py'], { cwd: mlDir, shell: true 
 
 ## 👥 User Journeys
 
-### Citizen Journey
-```
-Register → Login → Dashboard
-                      │
-          ┌───────────┼───────────────┐
-          ▼           ▼               ▼
-   File Complaint  Track Status  E-Challan
-          │           │               │
-          ▼           ▼               ▼
-   AI analyzes    See officer    Pay fine
-   text + image   name assigned  online
-          │
-          ▼
-   Evidence photo
-   uploaded
+### 🏙️ Citizen Journey
+
+```mermaid
+flowchart TD
+    REG["📝 Register"] --> LOGIN["🔐 Login"]
+    LOGIN --> DASH["🏠 Dashboard"]
+
+    DASH --> FC["📋 File Complaint"]
+    DASH --> TS["📍 Track Status"]
+    DASH --> EC["🚦 E-Challan"]
+    DASH --> KW["🗺️ Know Your Ward"]
+    DASH --> PR["👤 Edit Profile"]
+
+    FC --> AI["🤖 AI Analysis\nCategory + Severity + Image Detection"]
+    AI --> FILED["✅ Complaint Filed"]
+
+    TS --> OFFICER["See Assigned Officer Name"]
+    TS --> STATUS["Pending → Assigned → Resolved"]
+
+    EC --> CHALLANS["View Challans by Phone Number"]
+    CHALLANS --> PAY["💳 Pay Fine Online"]
+    PAY --> PAID["✅ Marked Paid in DB"]
 ```
 
-### Officer Journey
-```
-Officer Login → Dashboard
-                    │
-         ┌──────────┼──────────┐
-         ▼          ▼          ▼
-  View Complaints  Stats   Assign Task
-         │                    │
-         ▼                    ▼
-  Resolve / Message     Name stored &
-  Citizen notified      visible to citizen
+### 🏛️ Officer Journey
+
+```mermaid
+flowchart TD
+    OLOGIN["🔐 Officer Login"] --> ODASH["📊 Officer Dashboard"]
+
+    ODASH --> VIEW["👁️ View Dept Complaints"]
+    ODASH --> STATS["📈 Performance Stats"]
+
+    VIEW --> ASSIGN["📌 Assign to Officer"]
+    ASSIGN --> NAME["Officer name stored &\nvisible to citizen"]
+
+    VIEW --> REASSIGN["🔄 Re-assign to Different Officer"]
+
+    VIEW --> RESOLVE["✅ Mark Resolved"]
+    RESOLVE --> NOTIFY["🔔 Citizen Notified"]
 ```
 
-### Traffic Police Journey
-```
-Officer Login (Traffic Dept) → Challan-Only Dashboard
-                                         │
-                            ┌────────────┴───────────┐
-                            ▼                        ▼
-                     Issue Challan           View All Issued
-                    (Mobile + Vehicle        Challans + Status
-                     + Reason + Amount)
-                            │
-                            ▼
-                   Citizen sees it on
-                   their Challan page
-                            │
-                            ▼
-                   Citizen pays → DB updated
-                   → Officer sees "Paid"
+### 🚦 Traffic Police Journey
+
+```mermaid
+flowchart TD
+    TLOGIN["🔐 Officer Login\nTraffic Police Dept"] --> TONLY["🚦 Challan-Only Dashboard\nTask Board hidden"]
+
+    TONLY --> ISSUE["📋 Issue Challan"]
+    TONLY --> HISTORY["🗂️ View Issued Challans"]
+
+    ISSUE --> FIELDS["Mobile Number\nVehicle Number\nViolation Reason\nFine Amount"]
+    FIELDS --> SAVED["💾 Saved to challans collection"]
+
+    SAVED --> CITIZEN["Citizen sees challan\non their E-Challan page"]
+    CITIZEN --> PAYMENT["💳 Citizen Pays"]
+    PAYMENT --> UPDATE["DB status: Pending → Paid"]
+    UPDATE --> HISTORY
 ```
 
 ---
@@ -505,22 +521,42 @@ The Node server auto-spawns the Flask ML API on startup. No separate Python comm
 ## 🔐 Security Model
 
 ### Authentication Flow
-```
-Client → Authorization: Bearer <JWT>
-              │
-              ▼
-        authMiddleware
-              │
-        ┌─────┴──────────────┐
-        ▼                    ▼
-  Find in Users         Find in Officers
-        │                    │
-        └────────┬───────────┘
-                 ▼
-          req.user = entity
-                 │
-                 ▼
-            Controller
+
+```mermaid
+flowchart TD
+    REQ["📡 Incoming Request\nAuthorization: Bearer JWT"]
+    MW["🛡️ authMiddleware"]
+    VERIFY["🔑 Verify JWT Signature\njsonwebtoken.verify"]
+    INVALID["❌ 401 Unauthorized"]
+
+    subgraph LOOKUP ["Dual Entity Lookup"]
+        USERS["🔍 Find in Users collection"]
+        OFFICERS["🔍 Find in Officers collection"]
+    end
+
+    NOTFOUND["❌ 401 User Not Found"]
+    ATTACH["✅ req.user = entity"]
+
+    subgraph RBAC ["Role-Based Access Control"]
+        ROLE["Check req.user.role"]
+        DEPT["Check officer.department"]
+        ALLOWED["✅ Proceed to Controller"]
+        DENIED["❌ 403 Forbidden"]
+    end
+
+    REQ --> MW
+    MW --> VERIFY
+    VERIFY -- Invalid --> INVALID
+    VERIFY -- Valid --> LOOKUP
+    USERS -- Found --> ATTACH
+    OFFICERS -- Found --> ATTACH
+    USERS -- Not Found --> OFFICERS
+    OFFICERS -- Not Found --> NOTFOUND
+    ATTACH --> ROLE
+    ROLE -- Authorized --> DEPT
+    DEPT -- Matches --> ALLOWED
+    DEPT -- Mismatch --> DENIED
+    ROLE -- Unauthorized --> DENIED
 ```
 
 ### Security Measures
