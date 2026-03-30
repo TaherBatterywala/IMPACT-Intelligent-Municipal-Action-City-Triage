@@ -2,14 +2,32 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/common/Navbar';
 import { useComplaint } from '../../context/ComplaintContext';
 import { FaCheckCircle, FaHourglassHalf, FaCog, FaUserTie, FaClipboardList } from 'react-icons/fa';
+import API from '../../services/api';
 
 const TrackStatus = () => {
     const { complaints, fetchMyComplaints } = useComplaint();
     const [selectedComplaint, setSelectedComplaint] = useState(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     useEffect(() => {
         fetchMyComplaints();
     }, []);
+
+    // Lazy-load full complaint detail (including image) only when clicked
+    const handleSelectComplaint = async (complaint) => {
+        // Show data we already have instantly
+        setSelectedComplaint(complaint);
+        if (complaint.image) return; // already have image from cache
+        setDetailLoading(true);
+        try {
+            const res = await API.get(`/complaints/${complaint._id}`);
+            setSelectedComplaint(res.data);
+        } catch (e) {
+            console.error('Failed to load complaint detail:', e);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
 
     // Combine mock updates with real messages from officers
     const getMessages = (complaint) => {
@@ -64,7 +82,7 @@ const TrackStatus = () => {
                             {(complaints || []).map(c => (
                                 <div 
                                     key={c._id || Math.random()} 
-                                    onClick={() => setSelectedComplaint(c)}
+                                    onClick={() => handleSelectComplaint(c)}
                                     className={`p-4 rounded-xl cursor-pointer border transition-all ${
                                         selectedComplaint?._id === c._id 
                                         ? 'border-primary bg-blue-50 dark:bg-blue-900/20' 
@@ -142,7 +160,13 @@ const TrackStatus = () => {
                             <div className="mb-8">
                                 <h3 className="text-xl font-bold dark:text-gray-200 mb-3">Original Description</h3>
                                 <p className="text-gray-700 dark:text-gray-300 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg whitespace-pre-wrap">{selectedComplaint.description}</p>
-                                {selectedComplaint.image && !selectedComplaint.image.includes('placeholder.com') && (
+                                {detailLoading && (
+                                    <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
+                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        Loading image...
+                                    </div>
+                                )}
+                                {!detailLoading && selectedComplaint.image && !selectedComplaint.image.includes('placeholder.com') && (
                                     <div className="mt-4">
                                         <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Attached Image</h4>
                                         <img src={selectedComplaint.image} alt="Complaint" className="w-full max-w-sm rounded-lg shadow border dark:border-gray-700" />

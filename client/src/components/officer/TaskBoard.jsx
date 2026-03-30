@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-// Migrated to simple Tabs approach as per requirements
 import { FaUserCircle, FaMapMarkerAlt, FaCalendarAlt, FaCheck, FaShare, FaCommentDots } from 'react-icons/fa';
 import Button from '../common/Button';
-
-// Using Tabs approach as requested in prompt "Tab 1: Active/Pending, Tab 2: Assigned..."
+import API from '../../services/api';
 
 const TaskBoard = ({ complaints, onAssign, onResolve, onMessage }) => {
     const [activeTab, setActiveTab] = useState('Pending');
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [messageText, setMessageText] = useState('');
+    const [detailLoading, setDetailLoading] = useState(false);
+
+    // Lazy-load full complaint (incl. image) when officer clicks View Details
+    const handleViewDetails = async (complaint) => {
+        setSelectedComplaint(complaint); // show modal instantly with list data
+        if (complaint.image) return;     // already cached
+        setDetailLoading(true);
+        try {
+            const res = await API.get(`/complaints/${complaint._id}`);
+            setSelectedComplaint(res.data);
+        } catch (e) {
+            console.error('Failed to load complaint detail:', e);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
 
     // Filter complaints based on tab
     const filteredComplaints = complaints.filter(c => {
@@ -96,7 +110,7 @@ const TaskBoard = ({ complaints, onAssign, onResolve, onMessage }) => {
                                         <Button
                                             variant="ghost"
                                             className="flex-1 text-sm py-1.5"
-                                            onClick={() => setSelectedComplaint(complaint)}
+                                            onClick={() => handleViewDetails(complaint)}
                                         >
                                             View Details
                                         </Button>
@@ -124,7 +138,7 @@ const TaskBoard = ({ complaints, onAssign, onResolve, onMessage }) => {
                                         <Button
                                             variant="ghost"
                                             className="w-full text-sm py-1 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                            onClick={() => setSelectedComplaint(complaint)}
+                                            onClick={() => handleViewDetails(complaint)}
                                         >
                                             View Details
                                         </Button>
@@ -155,7 +169,7 @@ const TaskBoard = ({ complaints, onAssign, onResolve, onMessage }) => {
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8 relative transition-colors duration-200">
                         <button 
                             className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                            onClick={() => { setSelectedComplaint(null); setMessageText(''); }}
+                            onClick={() => { setSelectedComplaint(null); setMessageText(''); setDetailLoading(false); }}
                         >
                             &times; Close
                         </button>
@@ -189,7 +203,14 @@ const TaskBoard = ({ complaints, onAssign, onResolve, onMessage }) => {
                             </div>
                         </div>
 
-                        {selectedComplaint.image && !selectedComplaint.image.includes('placeholder.com') && (
+                        {/* Image section with lazy-load spinner */}
+                        {detailLoading && (
+                            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                Loading image...
+                            </div>
+                        )}
+                        {!detailLoading && selectedComplaint.image && !selectedComplaint.image.includes('placeholder.com') && (
                             <div className="mb-6">
                                 <div className="flex justify-between items-center mb-2">
                                     <h3 className="font-semibold text-gray-700 dark:text-gray-200">Attached Photo</h3>

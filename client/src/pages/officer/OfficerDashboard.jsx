@@ -41,12 +41,17 @@ const OfficerDashboard = () => {
         });
 
         if (juniorName) {
+            // Optimistic update — update UI instantly, don't wait for server
+            updateComplaintStatus(id, { status: 'Assigned', assignedOfficerName: juniorName });
+            setStats(prev => ({ ...prev, pending: Math.max(0, prev.pending - 1) }));
+
             try {
-                await updateComplaintStatus(id, { status: 'Assigned', assignedOfficerName: juniorName });
-                fetchOfficerComplaints(); // Refresh UI to move to Assigned tab and show name
-                fetchStats();
-                Swal.fire('Assigned!', `Complaint assigned to ${juniorName}`, 'success');
+                await API.put(`/officer/assign/${id}`, { assignedOfficerName: juniorName });
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Assigned to ${juniorName}`, showConfirmButton: false, timer: 2000 });
+                fetchStats(); // Sync real count from server silently
             } catch (error) {
+                // Rollback optimistic update on failure
+                fetchOfficerComplaints();
                 Swal.fire('Error', 'Failed to assign complaint', 'error');
             }
         }
@@ -64,12 +69,16 @@ const OfficerDashboard = () => {
         });
 
         if (result.isConfirmed) {
+            // Optimistic update — instantly move card to Resolved column
+            updateComplaintStatus(id, { status: 'Resolved' });
+            setStats(prev => ({ ...prev, resolved: prev.resolved + 1, pending: Math.max(0, prev.pending - 1) }));
+
             try {
-                await API.put(`/officer/resolve/${id}`); // Use specific endpoint
-                fetchOfficerComplaints(); // Refresh
+                await API.put(`/officer/resolve/${id}`);
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Complaint resolved!', showConfirmButton: false, timer: 2000 });
                 fetchStats();
-                Swal.fire('Resolved!', 'The complaint has been marked as resolved.', 'success');
             } catch (error) {
+                fetchOfficerComplaints();
                 Swal.fire('Error', 'Failed to resolve complaint', 'error');
             }
         }
@@ -79,8 +88,7 @@ const OfficerDashboard = () => {
         if (!messageText) return;
         try {
             await API.post(`/officer/message/${id}`, { message: messageText });
-            Swal.fire('Sent!', 'Message sent successfully!', 'success');
-            fetchOfficerComplaints(); // Refresh complaints to get the new message
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Message sent!', showConfirmButton: false, timer: 2000 });
         } catch (error) {
             Swal.fire('Error', 'Failed to send message', 'error');
         }
